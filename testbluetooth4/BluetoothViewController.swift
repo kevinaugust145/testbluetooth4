@@ -221,7 +221,11 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
     }
     
     
-        
+    @IBAction func adkModel(_ sender: Any) {
+        let command: [UInt8] = [0x02, 0x4B, 0x00, 0x00, 0x00, 0x00, 0x03]
+          sendCommand(command)
+    }
+    
     @IBAction func sendACommand(_ sender: Any) {
         let command: [UInt8] = [0x02, 0x41, 0x00, 0x00, 0x00, 0x00, 0x03]
           sendCommand(command)

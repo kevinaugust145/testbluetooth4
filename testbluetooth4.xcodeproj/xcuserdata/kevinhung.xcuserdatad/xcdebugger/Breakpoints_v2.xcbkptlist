@@ -14,10 +14,10 @@
             filePath = "testbluetooth4/BluetoothViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "179"
-            endingLineNumber = "179"
-            landmarkName = "tableView(_:didSelectRowAt:)"
-            landmarkType = "9">
+            startingLineNumber = "245"
+            endingLineNumber = "245"
+            landmarkName = "BluetoothViewController"
+            landmarkType = "3">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -30,10 +30,10 @@
             filePath = "testbluetooth4/BluetoothViewController.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "219"
-            endingLineNumber = "219"
-            landmarkName = "stopTimer(_:)"
-            landmarkType = "9">
+            startingLineNumber = "285"
+            endingLineNumber = "285"
+            landmarkName = "unknown"
+            landmarkType = "0">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>
