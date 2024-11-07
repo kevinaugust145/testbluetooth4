@@ -42,6 +42,14 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
         centerManager = CBCentralManager(delegate: self, queue: nil)
         tableView.delegate = self
         tableView.dataSource = self
+        t1Value .font = UIFont(name: "digital-7", size: 16)
+
+        for family: String in UIFont.familyNames {
+            print(family)
+            for name: String in UIFont.fontNames(forFamilyName: family) {
+                print("==   \(name)")
+            }
+        }
     }
     func centralManagerDidUpdateState(_ central: CBCentralManager) {
         if central.state == .poweredOn {
@@ -50,6 +58,7 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
             print("Bluetooth is not available")
         }
     }
+    
     
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         if let name = peripheral.name , name.hasPrefix("BT"){
