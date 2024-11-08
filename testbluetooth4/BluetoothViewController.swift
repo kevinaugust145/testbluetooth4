@@ -104,22 +104,7 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
             }
         }
         
-    // 解碼兩個 byte 的通道值並轉換為溫度
-    func decodeChannelValue(data: Data, byteIndex: Int) -> Double {
-        // 確保索引合法
-          guard byteIndex + 1 < data.count else { return 0.0 }
-          
-          // 讀取兩個 byte，並將它們組合成有號 16 位元整數 (Int16)
-          let highByte = Int16(data[byteIndex])
-          let lowByte = Int16(data[byteIndex + 1])
-
-          // 將高位元移位，並與低位元相加，形成有號 16 位數值
-          let value = (highByte << 8) | lowByte
-
-          // 將數值除以 10，轉為浮點數的結果
-          return Double(value) / 10.0
-    }
-    
+  
     
         func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
             if let data = characteristic.value {
@@ -168,6 +153,54 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
            print("連接失敗：\(error?.localizedDescription ?? "未知錯誤")")
        }
     
+    /// 傳送藍芽資料的通用函數
+    /// - Parameter bytes: 要傳送的 Byte 陣列
+    func sendCommand(_ bytes: [UInt8]) {
+        guard let peripheral = selectedPeripheral, let txCharacteristic = txCharacteristic else {
+            print("未找到連接的裝置或特徵值")
+            return
+        }
+
+        let data = Data(bytes)
+        peripheral.writeValue(data, for: txCharacteristic, type: .withResponse)
+        print("Sent data: \(data.map { String(format: "%02X", $0) }.joined(separator: " "))")
+    }
+    
+    // MARK: - Bluetooth Scanning
+
+        func scanForBluetoothDevices() {
+            // 清空之前的裝置列表並更新 UI
+            peripherals.removeAll()
+            tableView.reloadData()
+
+            print("Scanning for Bluetooth devices...")
+            centerManager.scanForPeripherals(withServices: nil, options: nil)
+        }
+
+        func stopScanning() {
+            centerManager.stopScan()
+            print("Stopped scanning for Bluetooth devices.")
+        }
+
+    
+    
+    
+    
+    // 解碼兩個 byte 的通道值並轉換為溫度
+    func decodeChannelValue(data: Data, byteIndex: Int) -> Double {
+        // 確保索引合法
+          guard byteIndex + 1 < data.count else { return 0.0 }
+          
+          // 讀取兩個 byte，並將它們組合成有號 16 位元整數 (Int16)
+          let highByte = Int16(data[byteIndex])
+          let lowByte = Int16(data[byteIndex + 1])
+
+          // 將高位元移位，並與低位元相加，形成有號 16 位數值
+          let value = (highByte << 8) | lowByte
+
+          // 將數值除以 10，轉為浮點數的結果
+          return Double(value) / 10.0
+    }
     
         func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
             return peripherals.count
@@ -260,35 +293,7 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
         centerManager.cancelPeripheralConnection(peripheral)
   
     }
-    /// 傳送藍芽資料的通用函數
-    /// - Parameter bytes: 要傳送的 Byte 陣列
-    func sendCommand(_ bytes: [UInt8]) {
-        guard let peripheral = selectedPeripheral, let txCharacteristic = txCharacteristic else {
-            print("未找到連接的裝置或特徵值")
-            return
-        }
-
-        let data = Data(bytes)
-        peripheral.writeValue(data, for: txCharacteristic, type: .withResponse)
-        print("Sent data: \(data.map { String(format: "%02X", $0) }.joined(separator: " "))")
-    }
-    
-    // MARK: - Bluetooth Scanning
-
-        func scanForBluetoothDevices() {
-            // 清空之前的裝置列表並更新 UI
-            peripherals.removeAll()
-            tableView.reloadData()
-
-            print("Scanning for Bluetooth devices...")
-            centerManager.scanForPeripherals(withServices: nil, options: nil)
-        }
-
-        func stopScanning() {
-            centerManager.stopScan()
-            print("Stopped scanning for Bluetooth devices.")
-        }
-
+  
     
 }
 
