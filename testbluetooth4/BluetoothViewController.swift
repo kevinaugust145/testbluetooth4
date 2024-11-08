@@ -37,12 +37,19 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
     var selectedPeripheral: CBPeripheral!
     var txCharacteristic: CBCharacteristic!
     var commandTimer: Timer?
+    // 在 class 外面宣告
+    var bm77TxCharacteristic: CBCharacteristic?
+    var bm77RxCharacteristic: CBCharacteristic?
+    var peripheral: CBPeripheral?
     override func viewDidLoad() {
         super.viewDidLoad()
         centerManager = CBCentralManager(delegate: self, queue: nil)
         tableView.delegate = self
         tableView.dataSource = self
-        t1Value .font = UIFont(name: "digital-7", size: 16)
+        t1Value .font = UIFont(name: "digital-7", size: 24)
+        t2Value .font = UIFont(name: "digital-7", size: 24)
+        t3Value .font = UIFont(name: "digital-7", size: 24)
+        t4Value .font = UIFont(name: "digital-7", size: 24)
 
         for family: String in UIFont.familyNames {
             print(family)
@@ -84,28 +91,35 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
             peripheral.discoverServices(nil)
         }
         
-        func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
-            guard let services = peripheral.services else { return }
-            for service in services {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        guard error == nil else { return }
+        for service in peripheral.services ?? [] {
+            if service.uuid.uuidString == "49535343-FE7D-4AE5-8FA9-9FAFD205E455" {
                 peripheral.discoverCharacteristics(nil, for: service)
             }
         }
-        func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
-            if let characteristics = service.characteristics {
-                for characteristic in characteristics {
-                    print("Characteristic found: \(characteristic.uuid)")
-                    if characteristic.properties.contains(.write) {
-                        txCharacteristic = characteristic
-                    }
-                    else if characteristic.properties.contains(.notify) {
-                        peripheral.setNotifyValue(true, for: characteristic)
-                    }
-                }
+    }
+    
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
+        guard error == nil else { return }
+        for characteristic in service.characteristics ?? [] {
+            switch characteristic.uuid.uuidString {
+            case "49535343-1E4D-4BD9-BA61-23C647249616":
+                // Enable Notify for TX characteristic
+                peripheral.setNotifyValue(true, for: characteristic)
+                self.bm77TxCharacteristic = characteristic
+
+            case "49535343-8841-43F4-A8D4-ECBE34729BB3":
+                // Save RX characteristic for write operations
+                self.bm77RxCharacteristic = characteristic
+
+            default:
+                break
             }
         }
+    }
         
-  
-    
+ 
         func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
             if let data = characteristic.value {
                 let hexString = data.map { String(format: "%02x", $0) }.joined(separator: " ")
@@ -165,7 +179,15 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
         peripheral.writeValue(data, for: txCharacteristic, type: .withResponse)
         print("Sent data: \(data.map { String(format: "%02X", $0) }.joined(separator: " "))")
     }
-    
+ 
+    func sendCommandToBM77(_ bytes: [UInt8]) {
+        guard let peripheral = selectedPeripheral, let characteristic = bm77RxCharacteristic else {
+            return
+        }
+        let data = Data(bytes)
+        peripheral.writeValue(data, for: characteristic, type: .withResponse)
+        print("Sent data: \(data.map { String(format: "%02X", $0) }.joined(separator: " "))")
+    }
     // MARK: - Bluetooth Scanning
 
         func scanForBluetoothDevices() {
@@ -222,33 +244,21 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
         }
    
     @IBAction func maxMin(_ sender: Any) {
-        
-        guard let peripheral = selectedPeripheral, let txCharacteristic = txCharacteristic else { return }
-        
-        let bytes: [UInt8] = [0x02, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x03]
-        let data = Data(bytes)
-        
-        peripheral.writeValue(data, for: txCharacteristic, type: .withoutResponse)
-        print("Sent data: \(data.map{ String(format: "%02X", $0) }.joined(separator: " "))")
-        
+        let command: [UInt8] = [0x02, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x03]
+        sendCommandToBM77(command)
     }
     
    
     @IBAction func askModel(_ sender: Any) {
-        guard let peripheral = selectedPeripheral, let txCharacteristic = txCharacteristic else { return }
-        
-        let bytes: [UInt8] = [0x02, 0x4D, 0x00, 0x00, 0x00, 0x00, 0x03]
-        let data = Data(bytes)
-        
-        peripheral.writeValue(data, for: txCharacteristic, type: .withResponse)
-        print("Sent data: \(data.map{ String(format: "%02X", $0) }.joined(separator: " "))")
-        
+        let command: [UInt8] = [0x02, 0x4B, 0x00, 0x00, 0x00, 0x00, 0x03]
+        sendCommandToBM77(command)
+      
         
     }
     /// 每 0.5 秒執行的指令發送邏輯
     @objc func sendRepeatedCommand() {
         let command: [UInt8] = [0x02, 0x41, 0x00, 0x00, 0x00, 0x00, 0x03]
-        sendCommand(command)
+        sendCommandToBM77(command)
     }
     
     @IBAction func startTimer(_ sender: Any) {
@@ -265,13 +275,12 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
     
     @IBAction func adkModel(_ sender: Any) {
         let command: [UInt8] = [0x02, 0x4B, 0x00, 0x00, 0x00, 0x00, 0x03]
-          sendCommand(command)
+        sendCommandToBM77(command)
     }
     
     @IBAction func sendACommand(_ sender: Any) {
         let command: [UInt8] = [0x02, 0x41, 0x00, 0x00, 0x00, 0x00, 0x03]
-          sendCommand(command)
-
+        sendCommandToBM77(command)
         
     }
     
@@ -280,10 +289,7 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
            scanForBluetoothDevices() // 重新開始掃描
     }
     
-    
-    @IBAction func sendButtonTapped(_ sender: Any) {
-  
-    }
+
     
     @IBAction func disconnect(_ sender: UIButton) {
         guard let peripheral = selectedPeripheral else {
@@ -294,6 +300,20 @@ class BluetoothViewController: UIViewController, CBCentralManagerDelegate, CBPer
   
     }
   
+    @IBAction func Hold(_ sender: Any) {
+        let command: [UInt8] = [0x02, 0x48, 0x00, 0x00, 0x00, 0x00, 0x03]
+        sendCommandToBM77(command)
+
+    }
+    @IBAction func Record(_ sender: Any) {
+        let command: [UInt8] = [0x02, 0x45, 0x00, 0x00, 0x00, 0x00, 0x03]
+        sendCommandToBM77(command)
+    }
     
+    @IBAction func CFChange(_ sender: Any) {
+        let command: [UInt8] = [0x02, 0x43, 0x00, 0x00, 0x00, 0x00, 0x03]
+        sendCommandToBM77(command)
+        
+    }
 }
 
